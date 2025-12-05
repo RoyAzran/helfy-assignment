@@ -85,8 +85,10 @@ services:
       - --addr=0.0.0.0:8300
       - --advertise-addr=ticdc:8300
       - --log-file=/logs/ticdc.log
+      - --data-dir=/data/ticdc
     volumes:
       - ticdc_logs:/logs
+      - ticdc_data:/data
     depends_on:
       - pd
       - tikv
@@ -155,3 +157,4 @@ volumes:
   pd_data:
   tikv_data:
   ticdc_logs:
+  ticdc_data:
