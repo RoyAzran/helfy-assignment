@@ -10,7 +10,6 @@ const log4js = require('log4js');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Logger Configuration
 log4js.configure({
     appenders: { 
         console: { type: 'console' } 
@@ -21,11 +20,9 @@ log4js.configure({
 });
 const logger = log4js.getLogger();
 
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// Database Connection
 const dbConfig = {
     host: process.env.TIDB_HOST || '127.0.0.1',
     port: process.env.TIDB_PORT || 4000,
@@ -34,7 +31,6 @@ const dbConfig = {
     database: process.env.TIDB_DATABASE || 'test'
 };
 
-// Add SSL if configured (e.g. for TiDB Cloud)
 if (process.env.TIDB_SSL === 'true') {
     dbConfig.ssl = {
         minVersion: 'TLSv1.2',
@@ -42,10 +38,8 @@ if (process.env.TIDB_SSL === 'true') {
     };
 }
 
-// Create a connection pool
 const pool = mysql.createPool(dbConfig);
 
-// Test database connection
 pool.getConnection((err, connection) => {
     if (err) {
         console.error('Error connecting to TiDB:', err);
@@ -55,7 +49,6 @@ pool.getConnection((err, connection) => {
     }
 });
 
-// Kafka Setup
 const kafka = new Kafka({
     clientId: 'auth-service',
     brokers: (process.env.KAFKA_BROKERS || 'kafka:9092').split(',')
@@ -69,15 +62,13 @@ const connectProducer = async () => {
         console.log('Connected to Kafka');
     } catch (error) {
         console.error('Error connecting to Kafka:', error);
-        // Retry logic could be added here
     }
 };
 connectProducer();
 
-// Authentication Middleware
 const authenticate = (req, res, next) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
         return res.status(401).json({ message: 'Unauthorized: No token provided' });
@@ -99,19 +90,14 @@ const authenticate = (req, res, next) => {
     });
 };
 
-// Routes
-
-// Root route
 app.get('/', (req, res) => {
     res.json({ message: 'API is running', version: '1.0.0' });
 });
 
-// Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
 
-// Login Route
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     const ipAddress = req.ip || req.connection.remoteAddress;
@@ -132,7 +118,6 @@ app.post('/api/login', (req, res) => {
             const user = results[0];
             const token = uuidv4();
 
-            // Log user activity
             logger.info(JSON.stringify({
                 timestamp: new Date().toISOString(),
                 userId: user.id,
@@ -140,7 +125,6 @@ app.post('/api/login', (req, res) => {
                 ipAddress: ipAddress
             }));
 
-            // Update user with new token
             const updateQuery = 'UPDATE users SET auth_token = ? WHERE id = ?';
             pool.query(updateQuery, [token, user.id], async (updateErr) => {
                 if (updateErr) {
@@ -148,7 +132,6 @@ app.post('/api/login', (req, res) => {
                     return res.status(500).json({ message: 'Error generating token' });
                 }
 
-                // Send message to Kafka
                 try {
                     await producer.send({
                         topic: 'user-logins',
@@ -168,7 +151,6 @@ app.post('/api/login', (req, res) => {
                 });
             });
         } else {
-            // Log failed attempt
             logger.warn(JSON.stringify({
                 timestamp: new Date().toISOString(),
                 userId: null,
@@ -181,7 +163,6 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-// Protected Route Example
 app.get('/api/data', authenticate, (req, res) => {
     res.json({ 
         message: 'This is protected data', 
@@ -189,7 +170,6 @@ app.get('/api/data', authenticate, (req, res) => {
     });
 });
 
-// Start Server
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
 });

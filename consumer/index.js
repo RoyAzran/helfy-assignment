@@ -1,7 +1,6 @@
 const { Kafka } = require('kafkajs');
 const log4js = require('log4js');
 
-// Logger Configuration
 log4js.configure({
     appenders: { 
         console: { type: 'console', layout: { type: 'pattern', pattern: '%m' } } 
@@ -22,7 +21,6 @@ const consumer = kafka.consumer({ groupId: 'cdc-consumer-group' });
 const run = async () => {
     console.log('Starting CDC Consumer...');
     
-    // Retry connection with backoff
     let connected = false;
     let retries = 0;
     while (!connected && retries < 30) {
@@ -42,7 +40,6 @@ const run = async () => {
         process.exit(1);
     }
 
-    // Subscribe to both topics
     await consumer.subscribe({ topic: 'tidb-cdc-events', fromBeginning: true });
     await consumer.subscribe({ topic: 'user-logins', fromBeginning: true });
     console.log('Subscribed to topics: tidb-cdc-events, user-logins');
@@ -56,7 +53,6 @@ const run = async () => {
                     const parsed = JSON.parse(value);
                     
                     if (topic === 'tidb-cdc-events') {
-                        // CDC event from TiDB
                         const logEntry = {
                             timestamp: new Date().toISOString(),
                             source: 'TiDB-CDC',
@@ -70,7 +66,6 @@ const run = async () => {
                         };
                         logger.info(JSON.stringify(logEntry));
                     } else if (topic === 'user-logins') {
-                        // User login event
                         const logEntry = {
                             timestamp: new Date().toISOString(),
                             source: 'UserActivity',

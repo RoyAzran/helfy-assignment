@@ -17,11 +17,9 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         const data = await response.json();
 
         if (response.ok) {
-            // Store token in localStorage
             localStorage.setItem('authToken', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
             
-            // Redirect to dashboard
             window.location.href = '/dashboard';
         } else {
             messageDiv.textContent = data.message || 'Login failed';
